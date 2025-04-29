@@ -1,0 +1,12 @@
+kind: ConfigMap
+metadata:
+  name: bpfstat
+  namespace: gadget
+data:
+  gadget.yaml: |-
+    apiVersion: 1
+    kind: instance-spec
+    image: bpfstats
+    name: bpfstats
+    paramValues:
+      operator.LocalManager.host: true
