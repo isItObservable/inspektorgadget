@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+immutable: true
+metadata:
+  namespace: gadget
+  name: gadget-trace-id
+  annotations:
+    gadgetImage: trace_oomkill:latest
+  labels:
+    name: trace_oomkill
+    type: gadget-instance
+data:
+  operator.oci.annotate: "events:logs.body='process ' + tcomm + ' has been killed',events:logs.name=trace_oomkill"
+  operator.otel-metrics.otel-metrics-name: 'events:trace_oomkill'
+  operator.otel-metrics.otel-metrics-exporter: "metric-exporter"
+  operator.otel-logs.otel-logs-exporter: my-log-exporter
+  operator.kubeManager.all-namespaces: "true"
+
+

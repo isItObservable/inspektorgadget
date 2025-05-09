@@ -9,6 +9,8 @@ data:
     docker-socketpath: /run/docker.sock
     podman-socketpath: /run/podman/podman.sock
     operator:
+      ebpf:
+        enable-bpfstats: true
       oci:
         verify-image: true
         public-keys:

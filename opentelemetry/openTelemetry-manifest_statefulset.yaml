@@ -13,6 +13,8 @@ spec:
   observability:
     metrics:
       enableMetrics: true
+  args:
+    feature-gates: "service.profilesSupport"
   env:
     - name: MY_POD_IP
       valueFrom:
@@ -59,10 +61,10 @@ spec:
                 - targets:
                     - ${MY_POD_IP}:8888
             - job_name: kubezonnet
-              scrape_interval: : 5s
+              scrape_interval: 5s
               static_configs:
                 - targets:
-                  -  kubezonnet-server.kubezonnet.svc.cluster.local
+                    - kubezonnet-server.kubezonnet.svc.cluster.local
             - job_name: kubernetes-pods
               kubernetes_sd_configs:
                   - role: pod
@@ -108,6 +110,7 @@ spec:
         protocols:
           grpc: {}
           http: {}
+
     processors:
       batch:
         send_batch_max_size: 1000
@@ -192,6 +195,12 @@ spec:
               - set(attributes["dt.kubernetes.workload.kind"], "daemonset") where IsString(attributes["k8s.daemonset.name"])
               - set(attributes["dt.kubernetes.workload.name"], attributes["k8s.daemonset.name"]) where IsString(attributes["k8s.daemonset.name"])
               - set(attributes["dt.kubernetes.cluster.id"], attributes["k8s.cluster.uid"]) where IsString(attributes["k8s.cluster.uid"])
+          - context: datapoint
+            statements:
+              - set(attributes["k8s.node.name"], attributes["nodeName"]) where attributes["nodeName"] != nil
+              - set(attributes["gadgetImage"], "empty") where attributes["gadgetImage"] == nil or attributes["gadgetImage"] == ""
+              - set(attributes["gadgetName"], "empty") where attributes["gadgetName"] == nil or attributes["gadgetImage"] == ""
+              - set(attributes["progName"], "empty") where attributes["progName"] == nil or attributes["progName"] == ""
 
       cumulativetodelta: {}
 
@@ -205,11 +214,16 @@ spec:
 
     connectors:
       signaltometrics:
+        spans:
+          - name: span.count
+            description: Count of spans
+            sum:
+              value: Int(AdjustedCount()) # Count of total spans represented by each span
         profiles:
           - name: profile.count
             description: Count of profiles
             sum:
-              value: "1"
+              value: "1" # increment by 1 for each profile
 
     exporters:
 
@@ -234,8 +248,9 @@ spec:
           receivers: [prometheus]
           processors: [memory_limiter,k8sattributes,filter,transform,cumulativetodelta,batch]
           exporters: [otlphttp]
+
         metrics:
-          receivers: [ otlp,signaltometrics ]
+          receivers: [ otlp ]
           processors: [ memory_limiter,k8sattributes,filter,transform,cumulativetodelta,batch ]
           exporters: [ otlphttp ]
 
@@ -245,18 +260,12 @@ spec:
           exporters: [otlphttp]
 
         profiles:
-          receivers: [otlp]
-          exporters: [signaltometrics]
+          receivers: [ otlp ]
+          exporters: [   debug ]
 
       telemetry:
 
         metrics:
           address: ${MY_POD_IP}:8888
-        traces:
-          processors:
-            - batch:
-                exporter:
-                  otlp:
-                    protocol: grpc/protobuf
-                    endpoint: http://localhost:4317
+
 

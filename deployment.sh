@@ -88,7 +88,16 @@ kubectl apply -f https://github.com/open-telemetry/opentelemetry-operator/releas
 
  # installing Ingress controller
 helm upgrade --install ingress-nginx ingress-nginx  --repo https://kubernetes.github.io/ingress-nginx  --namespace ingress-nginx --create-namespace --set controller.opentelemetry.enabled=true --set controller.metrics.enabled=true \
-                                                                                                                                                                                                --set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
+
+
+helm upgrade --install dapr dapr/dapr \
+--version=1.15 \
+--namespace dapr-system \
+--create-namespace \
+--set global.mtls.enabled=false \
+--wait
+
+                                                                                                                                                        --set-string controller.podAnnotations."prometheus\.io/scrape"="true" \
 #installing the kubezonnet project
 kubectl apply -f https://raw.githubusercontent.com/polarsignals/kubezonnet/refs/heads/main/deploy/kubezonnet.yaml
 
@@ -138,6 +147,9 @@ kubectl apply -f inspecktor-gadget/configmap.yaml -n gadget
 kubectl rollout restart ds gadget -n gadget
 kubectl apply -f inspecktor-gadget/bpfstats.yaml -n gadget
 kubectl apply -f inspecktor-gadget/gadget_top.yaml -n gadget
+#opentelemetry network
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm install my-opentelemetry-ebpf open-telemetry/opentelemetry-ebpf --set cloudCollector.enabled="true" --set  endpoint.address="otel-collector.default.svc.cluster.local"
 #### Deploy the Dynatrace Operator
 kubectl create namespace dynatrace
 kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.4.0/kubernetes.yaml
@@ -156,6 +168,9 @@ kubectl create secret generic dynatrace  --from-literal=dynatrace_oltp_url="$DTU
 kubectl label namespace  default oneagent=false
 kubectl apply -f opentelemetry/rbac.yaml
 
+# Install the ebpf profiler agent from otel
+kubectl apply -f opentelemetry/openTelemetry-manfest-profile-ds.yaml
+#Install collector
 kubectl apply -f openTelemetry-manifest_statefulset.yaml
 kubectl apply -f opentelemetry/openTelemetry-manifest_ds.yaml
 #deploy demo application
@@ -166,7 +181,7 @@ kubectl apply -f dapr/config.yaml -n otel-demo
 kubectl apply -f opentelemetry/deploy_1_12.yaml -n otel-demo
 
 
-kubect apply -k tetragon/policices
+kubectl apply -k tetragon/policices
 
 
 #Deploy the ingress rules

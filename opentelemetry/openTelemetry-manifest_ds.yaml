@@ -8,7 +8,7 @@ metadata:
 spec:
   mode: daemonset
   serviceAccount: otelcontribcol
-  image: otel/opentelemetry-collector-contrib:0.118.0
+  image: otel/opentelemetry-collector-contrib:0.122.0
   ports:
     - name: prometheus
       port: 9090
@@ -76,8 +76,7 @@ spec:
             static_configs:
             - targets:
               - ${MY_POD_IP}:8888
-      profiling:
-        SamplesPerSecond: 19
+
 
 
 
@@ -204,7 +203,11 @@ spec:
           value: ${CLUSTERNAME}
           action: insert
 
-
+      resource/ebpf:
+        attributes:
+          - key: dt.pipeline.source
+            value: ebpftop
+            action: insert
 
       transform:
         error_mode: ignore
@@ -245,6 +248,15 @@ spec:
 
 
 
+    connectors:
+
+      routing/ebpf:
+        default_pipelines: [ logs/default ]
+        error_mode: ignore
+        table:
+          - statement: route() where attributes["k8s.container.name"] == "tester" and attributes["k8s.namespace.name"] == "gadget"
+            pipelines: [ logs/ebpftop ]
+
     exporters:
       debug:
         verbosity: detailed
@@ -265,17 +277,24 @@ spec:
       pipelines:
         logs:
           receivers: [filelog]
-          processors: [memory_limiter,k8sattributes,transform,resource,batch]
-          exporters: [ otlphttp]
+          processors: [memory_limiter,k8sattributes,transform,resource]
+          exporters: [ routing/ebpf ]
+
+        logs/default:
+          receivers: [ routing/ebpf ]
+          processors: [ batch ]
+          exporters: [ otlphttp ]
+
+        logs/ebpftop:
+          receivers: [ routing/ebpf ]
+          processors: [ resource/ebpf,batch ]
+          exporters: [ otlphttp ]
 
         metrics:
           receivers: [prometheus]
           processors: [memory_limiter,k8sattributes,transform,resource,cumulativetodelta,batch]
           exporters: [otlphttp]
-        profiles:
-          receivers: [ profiling ]
-          processors: [ memory_limiter,k8sattributes,batch ]
-          exporters: [ otlp ]
+
 
 
       telemetry:
@@ -283,10 +302,4 @@ spec:
           level: info
         metrics:
           address: ${MY_POD_IP}:8888
-        traces:
-          processors:
-            - batch:
-                exporter:
-                  otlp:
-                    protocol: grpc/protobuf
-                    endpoint: http://localhost:4317
+

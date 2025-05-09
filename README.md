@@ -3,6 +3,7 @@
 
 ## Episode : Inspektor Gadget
 This repository contains the files utilized during the tutorial presented in the dedicated IsItObservable episode preseting the project Inspektor Gadget
+p align="center"><img src="/image/inspektor.png" width="40%" alt="Logs IG" /></p>
 
 this tutorial will also utilize the OpenTelemetry Operator with:
 * the OpenTelemetry Demo
