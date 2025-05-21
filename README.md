@@ -9,7 +9,7 @@ Here are the links to the related assets:
 Feel free to explore the materials, star the repository, and follow along at your own pace.
 
 
-p align="center"><img src="/image/inspektor.png" width="40%" alt="Logs IG" /></p>
+<p align="center"><img src="/image/inspektor.png" width="40%" alt="Logs IG" /></p>
 
 This tutorial will also utilize the OpenTelemetry Operator with:
 * The OpenTelemetry Demo
